@@ -82,7 +82,7 @@ func generate_vertices():
 	#generate(vertices, colours)
 	call_deferred('generate', vertices, colours)
 
-func generate(vertices: PackedVector3Array, colours: PackedVector4Array):
+func generate(vertices: PackedVector3Array, _colours: PackedVector4Array):
 	var surfaceTool = SurfaceTool.new()
 	surfaceTool.begin(Mesh.PRIMITIVE_TRIANGLES)
 	
@@ -90,7 +90,6 @@ func generate(vertices: PackedVector3Array, colours: PackedVector4Array):
 		surfaceTool.set_smooth_group(-1)
 	
 	for i in range(len(vertices)):
-		surfaceTool.set_color(Color(colours[i].x, colours[i].y, colours[i].z, colours[i].w))
 		surfaceTool.add_vertex(vertices[i])
 	
 	surfaceTool.generate_normals()

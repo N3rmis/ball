@@ -13,34 +13,29 @@ void vertex() {
 
 void fragment() {
 	ALBEDO = vec3(0.0, clamp(pos.x / 2.0 + 0.5, 0.5, 1.0), clamp((pos.z + pos.x) / 4.0 + 0.75, 0.75, 1.0)) / 3.0;
-	float NdotV = dot(NORMAL, VIEW);
+	float NdotV = clamp(dot(normalize(NORMAL), normalize(VIEW)), 0.0, 1.0);
 	float rim = 1.0 - NdotV;
+	float smoothness = max(rim_smoothness, 0.001);
 	rim = smoothstep(
-		rim_threshold - rim_smoothness,
-		rim_threshold + rim_smoothness,
+		rim_threshold - smoothness,
+		rim_threshold + smoothness,
 		rim
 	);
-	ALBEDO = (1.0 - rim) * ALBEDO + (vec3(0.5) + ALBEDO / 2.0) * 1.0;
+	ALBEDO = (1.0 - rim) * ALBEDO + (vec3(0.5) + ALBEDO * 0.5);
 }
 
 void light() {
-	float NdotL = dot(NORMAL, LIGHT);
+	vec3 norm = normalize(NORMAL);
+	float NdotL = max(0.0, dot(norm, LIGHT));
+	DIFFUSE_LIGHT += ALBEDO * LIGHT_COLOR * ATTENUATION * (NdotL / 50.0);
 	
-	float stepped_diffuse = floor(NdotL * float(shade_bands)) / float(shade_bands);
-	stepped_diffuse = max(0.0, stepped_diffuse);
-    DIFFUSE_LIGHT += ALBEDO * LIGHT_COLOR * ATTENUATION * NdotL / 50.0;
-	
-	float NdotV = dot(NORMAL, VIEW);
+	float NdotV = clamp(dot(norm, normalize(VIEW)), 0.0, 1.0);
 	float rim = 1.0 - NdotV;
+	float smoothness = max(rim_smoothness, 0.001);
 	rim = smoothstep(
-		rim_threshold - rim_smoothness,
-		rim_threshold + rim_smoothness,
+		rim_threshold - smoothness,
+		rim_threshold + smoothness,
 		rim
 	);
 	DIFFUSE_LIGHT += rim_color.rgb * rim * ATTENUATION;
 }
-
-//void light() {
-//	// Called for every pixel for every light affecting the material.
-//	// Uncomment to replace the default light processing function with this one.
-//}

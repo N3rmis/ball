@@ -23,8 +23,12 @@ var userSettings = {
 	'volume': 100,
 	'musicVol': 100,
 	'sfxVol': 100,
-	'fov': 75
+	'fov': 75,
+	'maxFps': 60,
+	'resScale': 85 if OS.has_feature("web") else 100
 }
+
+var lastVolume = -1.0
 
 var modifierModifications = {
 	'speed': 2.10,
@@ -38,16 +42,33 @@ var distance = 0
 
 func _ready() -> void:
 	loadData()
+	applySettings()
+
+func updateAudioVolume() -> void:
+	var vol = float(userSettings.volume)
+	if vol <= 0.0:
+		AudioServer.set_bus_mute(0, true)
+	else:
+		AudioServer.set_bus_mute(0, false)
+		AudioServer.set_bus_volume_db(0, -1.0 / (vol / 100.0))
+	lastVolume = vol
+
+func applySettings() -> void:
+	Engine.max_fps = int(userSettings.get('maxFps', 60))
+	var scale_val = float(userSettings.get('resScale', 100)) / 100.0
+	get_viewport().scaling_3d_scale = clamp(scale_val, 0.5, 1.0)
+	updateAudioVolume()
 
 func _process(_delta: float) -> void:
-	AudioServer.set_bus_volume_db(0, -1 / (Global.userSettings.volume / 100))
+	if float(userSettings.volume) != lastVolume:
+		updateAudioVolume()
 	var state = 0
 	if not running:
 		if isReady:
 			state = 1
 		else:
 			state = 2
-	if state != lastState and Network.connected and Network.lobby != null:
+	if state != lastState and "connected" in Network and Network.connected and Network.lobby != null:
 		Network.client.emit('ready', state)
 		lastState = state
 	
@@ -81,3 +102,4 @@ func saveData():
 		config.set_value('userSettings', setting, userSettings[setting])
 	
 	config.save('user://data.cfg')
+	applySettings()

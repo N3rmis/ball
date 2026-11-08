@@ -602,6 +602,8 @@ transform = Transform3D(0.9219646, 0.22110593, -0.31795204, 0, 0.82099974, 0.570
 light_energy = 1.25
 shadow_enabled = true
 shadow_opacity = 0.8
+directional_shadow_mode = 1
+directional_shadow_max_distance = 60.0
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1721659255]
 environment = SubResource("Environment_e2o6t")

@@ -1,15 +1,21 @@
 extends Node
 
-var sfxVol = AudioServer.get_bus_index("clicks")
-# Called when the node enters the scene tree for the first time.
+var lastSfxVol = -1.0
+
 func _ready() -> void:
-	pass # Replace with function body.
+	update_sfx_volume()
 
+func update_sfx_volume() -> void:
+	var sfxBus = AudioServer.get_bus_index("clicks")
+	if sfxBus >= 0 and sfxBus < AudioServer.bus_count:
+		var vol = float(Global.userSettings.sfxVol)
+		if vol <= 0.0:
+			AudioServer.set_bus_mute(sfxBus, true)
+		else:
+			AudioServer.set_bus_mute(sfxBus, false)
+			AudioServer.set_bus_volume_db(sfxBus, linear_to_db(vol / 100.0))
+	lastSfxVol = float(Global.userSettings.sfxVol)
 
-# Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta: float) -> void:
-	#$clickSFX.volume_db = -1 / (Global.userSettings.volume / 100)
-	#$browseSFX.volume_db = -1 / (Global.userSettings.volume / 100)
-	#print_debug($browseSFX.volume_db)
-	AudioServer.set_bus_volume_db(4, (Global.userSettings.sfxVol / 100))
-	#sfxVol. = 0 / (Global.userSettings.sfxVol / 100)
+func _process(_delta: float) -> void:
+	if float(Global.userSettings.sfxVol) != lastSfxVol:
+		update_sfx_volume()

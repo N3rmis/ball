@@ -43,6 +43,7 @@ func _ready() -> void:
 	username.text = Global.username
 	lastPosition = position
 	Sfx.get_node("wind_sfx").play()
+	$speed_lines.visible = false
 	
 func tp(pos):
 	var dif = pos - position
@@ -69,14 +70,22 @@ func _physics_process(delta: float) -> void:
 	#elif Input.is_action_pressed("esc"):
 		#Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	#if velocity.length() < 10:
-	if Global.running == true:
-		#Sfx.get_node("wind_sfx").playing = true
-		$speed_lines.material.set_shader_parameter("line_density", min(velocity.length()/30, 0.7))
-		Sfx.get_node("wind_sfx").volume_db = min(velocity.length()*1.4-50, -20)
-		Sfx.get_node("wind_sfx").pitch_scale = min(velocity.length()/40+1, 2)
+	if Global.running:
+		var speed_val = velocity.length()
+		var density = min(speed_val / 30.0, 0.7)
+		if density > 0.05:
+			if not $speed_lines.visible:
+				$speed_lines.visible = true
+			$speed_lines.material.set_shader_parameter("line_density", density)
+		else:
+			if $speed_lines.visible:
+				$speed_lines.visible = false
+		Sfx.get_node("wind_sfx").volume_db = min(speed_val * 1.4 - 50, -20)
+		Sfx.get_node("wind_sfx").pitch_scale = min(speed_val / 40.0 + 1, 2)
 	else:
+		if $speed_lines.visible:
+			$speed_lines.visible = false
 		Sfx.get_node("wind_sfx").volume_db = -100
-		$speed_lines.material.set_shader_parameter("line_density", min(velocity.length()/30, 0))
 	#print_debug(min(max(velocity.length()/40-10, 0)+1, 2))
 	
 	if floort > 0:
@@ -259,7 +268,9 @@ func _process(delta: float) -> void:
 	if Network.fps < 100:
 		core.global_position = global_position
 	
-	$core/Label3D.fixed_size = camera.global_position.distance_to($core/Label3D.global_position) > 1
+	var should_fix = camera.global_position.distance_to($core/Label3D.global_position) > 1.0
+	if $core/Label3D.fixed_size != should_fix:
+		$core/Label3D.fixed_size = should_fix
 
 func _input(event):
 	if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:

@@ -1,26 +1,21 @@
 extends AudioStreamPlayer
 
-var oldVol
+var lastVol = -1.0
+var lastMusicVol = -1.0
 
-# Called when the node enters the scene tree for the first time.
 func _ready() -> void:
-	AudioEffectDelay
+	update_volume()
 
-# Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta: float) -> void:
-	#if -5 / (Global.userSettings.volume / 100) <= volume_db / (Global.userSettings.musicVol / 100):
-	oldVol = -5 + linear_to_db(Global.userSettings.volume / 100)
-	#else:
-	volume_db = linear_to_db(Global.userSettings.musicVol / 100) + oldVol
-	#print(linear_to_db(Global.userSettings.volume / 100))
-	#print(volume_db)
-	#print_debug(float(-5 / (Global.userSettings.volume / 100)))
-	#if Global.userSettings.musicVol <= 10:
-		#playing = false
-	#elif Global.userSettings.volume <= 10:
-		#playing
-	#if volume_db <= -47 && playing == true:
-		#stream_paused = true
-	#elif volume_db >= -46 && playing == false:
-		#stream_paused = false
-	
+func update_volume() -> void:
+	var master_vol = float(Global.userSettings.volume) / 100.0
+	var music_vol = float(Global.userSettings.musicVol) / 100.0
+	if master_vol <= 0.0 or music_vol <= 0.0:
+		volume_db = -80.0
+	else:
+		volume_db = -5.0 + linear_to_db(master_vol) + linear_to_db(music_vol)
+	lastVol = float(Global.userSettings.volume)
+	lastMusicVol = float(Global.userSettings.musicVol)
+
+func _process(_delta: float) -> void:
+	if float(Global.userSettings.volume) != lastVol or float(Global.userSettings.musicVol) != lastMusicVol:
+		update_volume()

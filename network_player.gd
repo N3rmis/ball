@@ -181,7 +181,9 @@ func _process(delta: float) -> void:
 	
 	var camera = get_viewport().get_camera_3d()
 	if camera:
-		$Label3D.fixed_size = camera.global_position.distance_to($Label3D.global_position) > 1
+		var should_fix = camera.global_position.distance_to($Label3D.global_position) > 1.0
+		if $Label3D.fixed_size != should_fix:
+			$Label3D.fixed_size = should_fix
 	
 func _broadcast_data(data):
 	send_msg('data', Network.data, false)

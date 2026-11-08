@@ -16,6 +16,7 @@ var center = Vector3()
 var minp = Vector3()
 var maxp = Vector3()
 var length = 0
+var sortTimer = 0.0
 
 func _ready() -> void:
 	#if connected already, request all the player data
@@ -94,22 +95,28 @@ func _process(delta: float) -> void:
 	center = center.lerp(currentCenter, clamp(delta * 10, 0, 1))
 	length = (maxp - minp).length()
 	
-	var children = playersList.get_children()
-	children.sort_custom(func(a, b):
-		var aplace = a.place != ''
-		var bplace = b.place != ''
+	sortTimer += delta
+	if sortTimer >= 0.1:
+		sortTimer = 0.0
+		var children = playersList.get_children()
+		children.sort_custom(func(a, b):
+			var aplace = a.place != ''
+			var bplace = b.place != ''
+			
+			if aplace != bplace:
+				return aplace
+			
+			if aplace and bplace:
+				return float(a.time) < float(b.time)
+			else:
+				var adist = float(a.distance.left(a.distance.length() - 1)) if a.distance.length() > 1 else 0.0
+				var bdist = float(b.distance.left(b.distance.length() - 1)) if b.distance.length() > 1 else 0.0
+				return adist > bdist
+		)
 		
-		if aplace != bplace:
-			return aplace
-		
-		if aplace and bplace:
-			return float(a.time) < float(b.time)
-		else:
-			return float(a.distance.left(a.distance.length() - 1)) > float(b.distance.left(b.distance.length() - 1))
-	)
-	
-	for i in range(children.size()):
-		playersList.move_child(children[i], i)
+		for i in range(children.size()):
+			if children[i].get_index() != i:
+				playersList.move_child(children[i], i)
 
 func _on_dm(from, data):
 	if from in players:

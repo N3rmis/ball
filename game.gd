@@ -12,7 +12,8 @@ func _ready() -> void:
 	#Network.newRace.connect(_global_modifier)
 	Network.spawn.connect(_on_spawn)
 	BackgroundMusic.bus = "inGame"
-	connect("settingsClosed", _settingsClosed)
+	if not $CanvasLayer/Control/optionsMenu.settingsClosed.is_connected(_settingsClosed):
+		$CanvasLayer/Control/optionsMenu.settingsClosed.connect(_settingsClosed)
 	Global.running = not Global.race
 	#Global.isReady = true
 	if Global.running == true:
