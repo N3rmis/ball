@@ -4,6 +4,8 @@
 .godot/
 .godot
 
+.vscode/
+
 build/
 
 *.svg.import
