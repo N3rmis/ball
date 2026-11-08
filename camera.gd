@@ -11,22 +11,16 @@ var offset = Vector3()
 
 var currentOff = Vector2()
 
-var turn = 0
-var updown = 0
+var turn = 0.0
+var updown = 0.0
 
-var distance = 1
+var distance = 1.0
 
-#my essential interpolation functions
-func lerpn(start, end, multiply, step):
-	multiply = 1 - (1 - multiply) ** step
-	if multiply > 1:
-		multiply = 1
-	if multiply < 0:
-		multiply = 0
-	return start + (end - start) * multiply
+func exp_decay_f(current: float, target: float, decay: float, delta: float) -> float:
+	return target + (current - target) * exp(-decay * delta)
 
-func lerp5(start, end, step):
-	return lerpn(start, end, 0.5, step)
+func exp_decay_v3(current: Vector3, target: Vector3, decay: float, delta: float) -> Vector3:
+	return target + (current - target) * exp(-decay * delta)
 
 func _ready() -> void:
 	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
@@ -34,89 +28,50 @@ func _ready() -> void:
 	followPos = position
 	offset = position
 	currentOff = Vector2(0, position.z)
-	
-func getTargetPos():
-	var pos = player.position
-	if not Global.running and Global.race and Global.startTime == -1:
-		pos = players.center
-	return pos
-	
-func _physics_process(delta: float) -> void:
-	fov = Global.userSettings.fov
-	var move = Vector2(Input.get_axis('camera_left', 'camera_right'), Input.get_axis('camera_down', 'camera_up')).normalized()
-	
-	turn += move.x * delta
-	updown += move.y * delta * 2
-	updown = clamp(updown, -PI/2, PI/2)
-	
-	offset = originalOffset.rotated(Vector3(1, 0, 0), updown)
-	
-	turn *= 0.85
-	
-	var targetPos = getTargetPos()
-	
-	#var offset2 = offset * distance
 
-	#var hoverxz = offset2.z
-	#var xzlength = sqrt(
-		#(followPos.x - targetPos.x) ** 2 +
-		#(followPos.z - targetPos.z) ** 2
-	#)
-	#var dif = Vector2(targetPos.x - followPos.x, targetPos.z - followPos.z)
-	#dif = dif.rotated(turn)
-	#var nearest = Vector2(
-		#targetPos.x + (-dif.x / xzlength) * hoverxz,
-		#targetPos.z + (-dif.y / xzlength) * hoverxz,
-	#)
-	currentOff = currentOff.rotated(turn)
-	var currentOff2 = currentOff * distance + Vector2(targetPos.x, targetPos.z)
-	followPos.x = lerp5(followPos.x, currentOff2.x, delta * 20 * 10);
-	followPos.z = lerp5(followPos.z, currentOff2.y, delta * 20 * 10);
-	
-	#extract the rotation along the x and z axis and store it for player movement
-	var targetQuaternion = Quaternion()
-	var dummy = Transform3D()
-	dummy.origin = followPos
-	
-	var targetPoint = Vector3(
-		followPos.x * 2 - targetPos.x,
-		followPos.y,
-		followPos.z * 2 - targetPos.z
-	)
-	
-	dummy = dummy.looking_at(targetPoint, Vector3.UP)
-	targetQuaternion = dummy.basis.get_rotation_quaternion()
-	
-	var multiply = 1 - (1 - 0.5) ** (delta * 50 * 10)
-	followQuat = followQuat.slerp(targetQuaternion, multiply)
+func getTargetPos() -> Vector3:
+	if not Global.running and Global.race and Global.startTime == -1 and players:
+		return players.center
+	if is_instance_valid(player):
+		return player.get_global_transform_interpolated().origin
+	return Vector3.ZERO
+
+func _physics_process(_delta: float) -> void:
+	fov = Global.userSettings.fov
+	var cam_angle = atan2(currentOff.x, currentOff.y)
+	followQuat = Quaternion(Vector3.UP, cam_angle)
 
 func _process(delta: float) -> void:
-	var spectating = not Global.running and Global.race and Global.startTime == -1 and players.length != INF
+	var move = Vector2(Input.get_axis('camera_left', 'camera_right'), Input.get_axis('camera_down', 'camera_up')).normalized()
+	turn += move.x * delta * 2.5
+	updown += move.y * delta * 2.0
+	updown = clamp(updown, -PI/2, PI/2)
 	
-	offset = originalOffset.rotated(Vector3(1, 0, 0), 0)
+	if abs(turn) > 0.0001:
+		currentOff = currentOff.rotated(turn)
+		turn = exp_decay_f(turn, 0.0, 15.0, delta)
+
+	var spectating = not Global.running and Global.race and Global.startTime == -1 and players and players.length != INF
+	offset = originalOffset.rotated(Vector3(1, 0, 0), updown)
 	
 	if spectating:
-		distance = lerp5(distance, players.length / offset.length() + 1, delta * 15)
+		distance = exp_decay_f(distance, players.length / offset.length() + 1.0, 10.0, delta)
 	else:
-		distance = lerp5(distance, 1, delta * 15)
+		distance = exp_decay_f(distance, 1.0, 10.0, delta)
 	
 	var targetPos = getTargetPos()
-	var offset2 = offset * distance
 	
-	#if spectating:
-		#offset2.y /= 100
-		
-	#smoothly move the camera to the target position
-	position = Vector3(
-		lerp5(position.x, followPos.x, delta * 25),
-		lerp5(position.y, targetPos.y + offset2.y, delta * 25),
-		lerp5(position.z, followPos.z, delta * 25),
+	var desiredPos = Vector3(
+		targetPos.x + currentOff.x * distance,
+		targetPos.y + offset.y * distance,
+		targetPos.z + currentOff.y * distance
 	)
 	
-	#smoothly rotate the camera to point at the player
-	var dummy2 = Transform3D()
-	dummy2.origin = position
-	dummy2 = dummy2.looking_at(targetPos + Vector3(0, 0.2, 0), Vector3.UP)
+	followPos = desiredPos
+	position = exp_decay_v3(position, desiredPos, 20.0, delta)
 	
-	var multiply2 = 1 - (1 - 0.5) ** (delta * 10)
-	quaternion = quaternion.slerp(dummy2.basis.get_rotation_quaternion(), multiply2)
+	var look_target = targetPos + Vector3(0, 0.2, 0)
+	if position.distance_squared_to(look_target) > 0.001:
+		var target_basis = Transform3D().looking_at(look_target - position, Vector3.UP).basis
+		var rot_factor = 1.0 - exp(-15.0 * delta)
+		quaternion = quaternion.slerp(target_basis.get_rotation_quaternion(), rot_factor)

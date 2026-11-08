@@ -49,7 +49,7 @@ func tp(pos):
 	var dif = pos - position
 	position += dif
 	lastPosition += dif
-	core.global_position = global_position
+	reset_physics_interpolation()
 	camera.position += dif
 	camera.followPos += dif
 
@@ -57,6 +57,7 @@ func reset():
 	position = Vector3()
 	lastPosition = Vector3()
 	velocity = Vector3()
+	reset_physics_interpolation()
 	camera.position = camera.offset
 	camera.look_at(position + Vector3(0, 0.2, 0))
 	camera.followPos = camera.offset + position
@@ -238,35 +239,14 @@ func _physics_process(delta: float) -> void:
 	Network.data.y = position.y
 	Network.data.z = position.z
 	
-	Network.data.rx = mesh.rotation.x
-	Network.data.ry = mesh.rotation.y
-	Network.data.rz = mesh.rotation.z
-	
-	core.global_position = global_position
-	
-func _process(delta: float) -> void:
-	#rotate player by velocity
 	mesh.rotate(Vector3(0, 0, 1), -velocity.x * delta * 2)
 	mesh.rotate(Vector3(1, 0, 0), velocity.z * delta * 2)
 	
-	#var alpha = Engine.get_physics_interpolation_fraction()
-	#core.global_position = core.global_position.lerp(lastPosition.lerp(global_position, alpha), clamp(delta * 50, 0, 1))
-	
-	
-	#scaleVel += (Vector3.ONE - scaleNode.scale) / 10
-	#scaleNode.scale += scaleVel
-	#var squash = clamp(velocity.length() * 0.3, 0, 0.5)
-	#var dir = velocity.normalized()
-	#var target_scale = Vector3.ONE
-	#if velocity.length() > 0.01:
-		#var right = dir.cross(Vector3.UP).normalized()
-		#target_scale = Vector3.ONE - dir * squash + right * squash * 0.5
-	#scaleNode.scale = scaleNode.scale.lerp(target_scale, delta * 10)
-	
-	#core.global_position = core.global_position.lerp(global_position, clamp(delta * 20, 0, 1))
-	if Network.fps < 100:
-		core.global_position = global_position
-	
+	Network.data.rx = mesh.rotation.x
+	Network.data.ry = mesh.rotation.y
+	Network.data.rz = mesh.rotation.z
+
+func _process(_delta: float) -> void:
 	var should_fix = camera.global_position.distance_to($core/Label3D.global_position) > 1.0
 	if $core/Label3D.fixed_size != should_fix:
 		$core/Label3D.fixed_size = should_fix
@@ -284,7 +264,7 @@ func _launch(vel):
 func _spawn(index):
 	position = Vector3(index * 0.25, 0, 0)
 	velocity = Vector3()
-	core.global_position = global_position
+	reset_physics_interpolation()
 	respawnTime = -1
 	
 	camera.followPos = camera.offset + position
