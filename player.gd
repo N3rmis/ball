@@ -61,7 +61,7 @@ func reset():
 	camera.position = camera.offset
 	camera.look_at(position + Vector3(0, 0.2, 0))
 	camera.followPos = camera.offset + position
-	camera.followQuat = camera.quaternion
+	camera.update_follow_quat(0.0, true)
 
 func _physics_process(delta: float) -> void:
 	speed = Network.options.speed / 100
@@ -268,7 +268,7 @@ func _spawn(index):
 	respawnTime = -1
 	
 	camera.followPos = camera.offset + position
-	camera.followQuat = Quaternion()
+	camera.update_follow_quat(0.0, true)
 	
 	#camera.position = camera.offset + position
 	#camera.look_at(position + Vector3(0, 0.2, 0))

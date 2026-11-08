@@ -28,6 +28,7 @@ func _ready() -> void:
 	followPos = position
 	offset = position
 	currentOff = Vector2(0, position.z)
+	update_follow_quat(0.0, true)
 
 func getTargetPos() -> Vector3:
 	if not Global.running and Global.race and Global.startTime == -1 and players:
@@ -36,10 +37,26 @@ func getTargetPos() -> Vector3:
 		return player.get_global_transform_interpolated().origin
 	return Vector3.ZERO
 
-func _physics_process(_delta: float) -> void:
+func update_follow_quat(delta: float, instant: bool = false) -> void:
+	var targetPos = player.position if is_instance_valid(player) else Vector3.ZERO
+	var targetPoint = Vector3(
+		followPos.x * 2.0 - targetPos.x,
+		followPos.y,
+		followPos.z * 2.0 - targetPos.z
+	)
+	if followPos.distance_squared_to(targetPoint) > 0.001:
+		var dummy = Transform3D()
+		dummy.origin = followPos
+		dummy = dummy.looking_at(targetPoint, Vector3.UP)
+		var targetQuaternion = dummy.basis.get_rotation_quaternion()
+		if instant:
+			followQuat = targetQuaternion
+		else:
+			followQuat = followQuat.slerp(targetQuaternion, 1.0 - exp(-25.0 * delta))
+
+func _physics_process(delta: float) -> void:
 	fov = Global.userSettings.fov
-	var cam_angle = atan2(currentOff.x, currentOff.y)
-	followQuat = Quaternion(Vector3.UP, cam_angle)
+	update_follow_quat(delta, false)
 
 func _process(delta: float) -> void:
 	var move = Vector2(Input.get_axis('camera_left', 'camera_right'), Input.get_axis('camera_down', 'camera_up')).normalized()
