@@ -88,10 +88,12 @@ func _physics_process(delta: float) -> void:
 		Sfx.get_node("wind_sfx").volume_db = -100
 	#print_debug(min(max(velocity.length()/40-10, 0)+1, 2))
 	
+	var currentDist = Global.distance
 	if floort > 0:
-		Global.distance = $'../track'.get_distance(global_position)
+		currentDist = $'../track'.get_distance(global_position)
+		Global.distance = currentDist
 	
-	var trackType = $'../track'.get_track_type(global_position)
+	var trackType = $'../track'.get_track_type_from_distance(currentDist)
 	
 	var bounceModifier = 1
 	var frictionModifier = 1
@@ -155,7 +157,7 @@ func _physics_process(delta: float) -> void:
 	var bounce_count = 0
 
 	while remaining_delta > 0 and bounce_count < max_bounces:
-		var collision = move_and_collide(velocity * remaining_delta, false, 0.001, true)
+		var collision = move_and_collide(velocity * remaining_delta, false, 0.001, false)
 		
 		if not collision:
 			break
@@ -170,40 +172,37 @@ func _physics_process(delta: float) -> void:
 				collider.send_msg('launch', [launch.x, launch.y, launch.z], true)
 		
 		var is_floor = normal.dot(Vector3.UP) > 0.5
-		var is_wall = normal.dot(Vector3.UP) < 0.5 and normal.dot(Vector3.UP) > -0.5
+		var is_wall = normal.dot(Vector3.UP) <= 0.5 and normal.dot(Vector3.UP) > -0.5
 		
 		if is_floor:
-			floort = 0.2
+			floort = 0.25
 		
 		var bounciness = 0.3 * bounceModifier
 		var velocity_along_normal = velocity.dot(normal)
 		
 		if velocity_along_normal < 0:
-			var bounce_vel = velocity_along_normal * normal * (1 + bounciness * bounceFactor)
-			if trackType == 3:
-				bounce_vel -= normal;
-			
 			if is_wall:
 				var tangent_vel = velocity - (velocity.dot(normal) * normal)
 				var normal_vel = velocity.dot(normal) * normal
-				
-				#var wall_friction = 0.95 ** frictionModifier
-				
 				var wall_friction = 0.99 ** frictionModifier
-				
 				tangent_vel *= wall_friction
 				velocity = tangent_vel + normal_vel
-				
-			#print_debug(1 - abs(normal.dot(Vector3.UP)))
-			#bounce_vel *= abs(normal.dot(Vector3.UP))
-			#var factor = abs(normal.dot(Vector3.UP)) ** 0.1
-			#velocity = Vector3(velocity.x * factor, velocity.y, velocity.z * factor)
-			velocity -= bounce_vel
-			bounceFactor = 1
+			
+			if trackType == 3 or velocity_along_normal < -1.5:
+				var bounce_vel = velocity_along_normal * normal * (1.0 + bounciness * bounceFactor)
+				if trackType == 3:
+					bounce_vel -= normal
+				velocity -= bounce_vel
+				bounceFactor = 1.0
+			else:
+				velocity -= velocity_along_normal * normal
 		
-		#velocity = velocity.slide(normal)
-		
-		remaining_delta *= (1.0 - collision.get_travel().length() / (oldVel * delta).length())
+		var travel_len = collision.get_travel().length()
+		var expected_len = (oldVel * delta).length()
+		if expected_len > 0.0001:
+			remaining_delta *= (1.0 - travel_len / expected_len)
+		else:
+			break
 		
 		if remaining_delta < 0.001:
 			break

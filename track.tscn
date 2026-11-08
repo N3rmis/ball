@@ -31,6 +31,7 @@ smooth_faces = true
 material = SubResource("ShaderMaterial_phvr8")
 
 [node name="mesh" type="MeshInstance3D" parent="."]
+cast_shadow = 0
 
 [node name="collisions" type="StaticBody3D" parent="."]
 

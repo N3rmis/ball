@@ -55,8 +55,6 @@ func updateAudioVolume() -> void:
 
 func applySettings() -> void:
 	Engine.max_fps = int(userSettings.get('maxFps', 60))
-	var scale_val = float(userSettings.get('resScale', 100)) / 100.0
-	get_viewport().scaling_3d_scale = clamp(scale_val, 0.5, 1.0)
 	updateAudioVolume()
 
 func _process(_delta: float) -> void:

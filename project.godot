@@ -16,8 +16,8 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 
 config/name="ball"
 run/main_scene="res://main_menu.tscn"
-run/max_fps=60
 config/features=PackedStringArray("4.7", "GL Compatibility")
+run/max_fps=60
 boot_splash/bg_color=Color(0.14117648, 0.14117648, 0.14117648, 0)
 boot_splash/image="uid://c0tn2p8k7q7jo"
 config/icon="res://icon.svg"
@@ -35,7 +35,10 @@ Sfx="*res://sfx.tscn"
 
 [display]
 
+window/size/viewport_width=1280
+window/size/viewport_height=720
 window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
 
 [editor_plugins]
 
@@ -115,8 +118,9 @@ respawn={
 
 [physics]
 
-common/physics_ticks_per_second=100
+common/physics_ticks_per_second=60
 common/physics_interpolation=true
+common/max_physics_steps_per_frame=4
 
 [rendering]
 

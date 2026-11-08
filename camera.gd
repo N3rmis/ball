@@ -29,7 +29,7 @@ func lerp5(start, end, step):
 	return lerpn(start, end, 0.5, step)
 
 func _ready() -> void:
-	
+	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	originalOffset = position
 	followPos = position
 	offset = position
@@ -109,7 +109,7 @@ func _process(delta: float) -> void:
 	#smoothly move the camera to the target position
 	position = Vector3(
 		lerp5(position.x, followPos.x, delta * 25),
-		lerp5(position.y, targetPos.y + offset2.y, delta * 25 * (1 + max(0, targetPos.y + offset2.y - position.y))),
+		lerp5(position.y, targetPos.y + offset2.y, delta * 25),
 		lerp5(position.z, followPos.z, delta * 25),
 	)
 	

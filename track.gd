@@ -84,7 +84,7 @@ func generate_track():
 		pos += Vector3(0, 0, -1 * scalar) * forward
 		curve.add_point(pos)
 		
-		if i % int(scalar * 10) == 0:
+		if i % 100 == 0:
 			typeCurve.add_point(pos)
 			currentRow += 1
 			
@@ -348,6 +348,10 @@ func _next_island():
 	else:
 		_next_island()
 
+func _exit_tree() -> void:
+	if thread and thread.is_alive():
+		thread.wait_to_finish()
+
 func _ready() -> void:
 	Network.on_seed.connect(_on_seed)
 	Network.cancel_start.connect(_cancel_start)
@@ -400,7 +404,8 @@ func gen_mesh(curve: Curve3D, cross: PackedVector2Array, segments: int, types):
 			var vertex = point + right * vpoint.x + up * vpoint.y
 			vertices.append(vertex)
 			
-			var type = types[floor(float(i) / 10 / 10)]
+			var type_idx = min(int(floor(float(i) / 100.0)), types.size() - 1)
+			var type = types[type_idx] if type_idx >= 0 and type_idx < types.size() else 0
 			
 			uvs.append(Vector2(vpoint.x / 1.5, t * segments / 20))
 			uvs2.append(typeUvs[type])
@@ -513,15 +518,23 @@ func split_into_chunks(all_faces: PackedVector3Array, chunk_size: int) -> Array:
 	return chunks
 
 func get_track_type(pos: Vector3):
-	if typeCurve.point_count == 0: 
+	if typeCurve.point_count == 0 or types.is_empty(): 
 		return 0
-	
 	var closest = typeCurve.get_closest_offset(pos)
-	var length = typeCurve.get_baked_length()
-	var interval = length / len(types) * 10 * 10
+	return get_track_type_from_distance(closest)
 
-	var index = int(floor(closest / interval))
-	if index < 0 or index >= len(types):
+func get_track_type_from_distance(dist: float) -> int:
+	if types.is_empty() or typeCurve.point_count == 0:
+		return 0
+	var length = typeCurve.get_baked_length()
+	if length <= 0.0:
+		return 0
+	var interval = length / float(types.size())
+	if interval <= 0.0:
+		return 0
+
+	var index = int(floor(dist / interval))
+	if index < 0 or index >= types.size():
 		return 0
 	
 	return types[index]
